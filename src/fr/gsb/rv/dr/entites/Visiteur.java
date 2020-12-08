@@ -51,6 +51,10 @@ public class Visiteur {
         this.lab_code = lab_code;
         this.vis_mdp = vis_mdp;
     }
+
+    public Visiteur() {
+        super();
+    }
     
     
     

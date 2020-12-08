@@ -6,8 +6,15 @@
 package fr.gsb.rv.dr;
 import fr.gsb.rv.dr.technique.Session;
 import fr.gsb.rv.dr.entites.Visiteur;
+import fr.gsb.rv.dr.modeles.ModeleGsbRv;
+import fr.gsb.rv.dr.vues.VueConnexion;
+import fr.gsb.rv.dr.technique.ConnexionBD;
+import fr.gsb.rv.dr.technique.ConnexionException;
 import fr.gsb.rv.dr.technique.DateFr;
+import java.sql.Connection;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Application;
 import static javafx.application.Application.launch;
 import javafx.application.Platform;
@@ -68,7 +75,7 @@ public class GSBRVDR extends Application {
         
         Menu menuPraticien = new Menu("Praticien");
         barreMenus.getMenus().add(menuPraticien);
-        MenuItem itemHesitants = new MenuItem("Hesistants");
+        MenuItem itemHesitants = new MenuItem("Hesitants");
         menuPraticien.getItems().add(itemHesitants);
         
         Menu menuVisiteurConnecte = new Menu();
@@ -80,6 +87,7 @@ public class GSBRVDR extends Application {
         
         menuPraticien.setDisable(true);
         menuRapports.setDisable(true);
+        itemSeDeconnecter.setDisable(true);
         
         
         itemQuitter.setOnAction(new EventHandler<ActionEvent>(){
@@ -111,19 +119,56 @@ public class GSBRVDR extends Application {
         );
         
         itemSeConnecter.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
             public void handle (ActionEvent event){
                 System.out.println("Se connecter");
-                itemSeConnecter.setDisable(true);
-                itemSeDeconnecter.setDisable(false);
-                menuPraticien.setDisable(false);
-                menuRapports.setDisable(false);
                 
-                Visiteur visiteurCo = new Visiteur("0B001","BOUAICHI", "Oumayma", "1 bis", "91230", "montgeron", new DateFr(), "AZ", "ZEC", "azerty" );
-                // j'ouvre la session...
-                if(Session.getSession() == null){ // Si la session est null...
-                    Session.ouvrir(visiteurCo);
+                
+                VueConnexion vue = new VueConnexion();
+                System.out.println(vue.getMatricule());
+                System.out.println(vue.getMdp());
+                try {
+                    Visiteur visiteurCo = ModeleGsbRv.seConnecter(vue.getMatricule(), vue.getMdp());
+                    if(visiteurCo != null){
+                        Session.ouvrir(visiteurCo);
+                        System.out.println(visiteurCo.toString());
+                        itemSeConnecter.setDisable(true);
+                        itemSeDeconnecter.setDisable(false);
+                        menuPraticien.setDisable(false);
+                        menuRapports.setDisable(false);
+                        menuVisiteurConnecte.setText(Session.getSession().getVisiteur().getVis_nom() + " "+ Session.getSession().getVisiteur().getVis_prenom());
+                        
+                    } else{
+                        
+                        
+                        Alert alertAuthentificationNok = new Alert(Alert.AlertType.CONFIRMATION); 
+                        alertAuthentificationNok.setHeaderText("L'authentification à échouée ");
+                        alertAuthentificationNok.setTitle("Echec authentification");
+                        //Button btnOui = new Button();
+                        //Button btnNon = new Button();
+                        ButtonType btnOk = new ButtonType("Quitter", ButtonData.CANCEL_CLOSE);
+                        alertAuthentificationNok.getButtonTypes().setAll(btnOk);
+                        Optional<ButtonType> result = alertAuthentificationNok.showAndWait();
+
+
+                       
+                    }     
+                   
+                    
+                    
+        
+                    
+                    
+                    //Visiteur visiteurCo = new Visiteur("0B001","BOUAICHI", "Oumayma", "1 bis", "91230", "montgeron", new DateFr(), "AZ", "ZEC", "azerty" );
+                    // j'ouvre la session...
+                    // if(Session.getSession() == null){ // Si la session est null...
+                    //   Session.ouvrir(visiteurCo);
+                    //}
+                    //menuVisiteurConnecte.setText(Session.getSession().getVisiteur().getVis_nom() + " " + Session.getSession().getVisiteur().getVis_prenom());
+                } catch (ConnexionException ex) {
+                    Logger.getLogger(GSBRVDR.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                menuVisiteurConnecte.setText(Session.getSession().getVisiteur().getVis_nom() + " " + Session.getSession().getVisiteur().getVis_prenom());
+                
                 
                
             }
@@ -138,19 +183,18 @@ public class GSBRVDR extends Application {
                 itemSeDeconnecter.setDisable(true);
                 menuPraticien.setDisable(true);
                 menuRapports.setDisable(true);
+                
                 Session.fermer();
                 menuVisiteurConnecte.setText("");
-                
             }
-            
-        }
-        );
+        });
+                
         
         itemConsulter.setOnAction(new EventHandler<ActionEvent>(){
             public void handle (ActionEvent event){
                 System.out.println("Consulter");
-                   itemHesitants.setDisable(true);
-                   itemConsulter.setDisable(true);
+                  
+                   //System.out.println("[Rapports]"+ " "+Session.getSession().getVisiteur().getVis_prenom() +" "+ Session.getSession().getVisiteur().getVis_nom());
                    
             }
             
@@ -162,17 +206,11 @@ public class GSBRVDR extends Application {
                 System.out.println("Hesitants");
                    itemHesitants.setDisable(false);
                    itemConsulter.setDisable(false);
-        
+                  // System.out.println("[Praticiens]"+ " "+Session.getSession().getVisiteur().getVis_prenom() +" "+ Session.getSession().getVisiteur().getVis_nom());
             }
             
         }
-        );
-        
-      
-        
-        
-        
-        
+        );  
         
         
     }
@@ -180,8 +218,21 @@ public class GSBRVDR extends Application {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ConnexionException{
         launch(args);
+        
+        
+        ConnexionBD.getConnexion();
+       
+        
+        //Visiteur visiteurCo = ModeleGsbRv.seConnecter("a17", "azerty");
+        /*if(visiteurCo != null){
+            System.out.println(visiteurCo.toString());
+        }
+        */
+        
+        
+        
     }
     
 }
